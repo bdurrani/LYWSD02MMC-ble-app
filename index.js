@@ -1,7 +1,7 @@
 "use strict";
 
 const status = document.getElementById("status");
-
+const log = console.log;
 function buf2hex(buffer) {
   // buffer is an ArrayBuffer
   return [...new Uint8Array(buffer)]
@@ -34,18 +34,23 @@ function printInt8(dw) {
 
 function getTime(dataview) {
   printRawData(dataview);
-  // const view = new DataView(buffer);
   // const now = new Date();
   // First 4 bytes: Unix timestamp (in seconds, little endian)
-  const timestamp = dataview.getUint32();
-  console.log(`timestamp: ${timestamp}`);
+  const timestamp = dataview.getUint32(0, true);
+  const now = new Date();
+  console.log(`timestamp: ${timestamp} actual: ${now.getTime()/1000}`);
+
 
   // Last byte: Offset from UTC (in hours)
   const UtcOffset = dataview.getInt8(4);
-  console.log(`UTC Offset: ${UtcOffset}`);
+  console.log(`UTC Offset: ${UtcOffset} expected ${-now.getTimezoneOffset()/60}`);
+  console.log(`time: ${new Date(timestamp*1000)}`);
 
-  // view.setUint32(0, now.getTime() / 1000, true);
-  // view.setInt8(4, -now.getTimezoneOffset() / 60);
+  const buffer = new ArrayBuffer(5);
+  const view = new DataView(buffer);
+  view.setUint32(0, now.getTime() / 1000, true);
+  view.setInt8(4, -now.getTimezoneOffset() / 60);
+  printRawData(view)
 }
 
 async function readAllCharacteristics(characteristics) {
@@ -88,6 +93,25 @@ const logDataView = (labelOfDataSource, key, valueDataView) => {
   );
 };
 
+async function setupAdvertiseLogging(device) {
+    device.addEventListener("advertisementreceived", (event) => {
+      log("Advertisement received.");
+      log("  Device Name: " + event.device.name);
+      log("  Device ID: " + event.device.id);
+      log("  RSSI: " + event.rssi);
+      log("  TX Power: " + event.txPower);
+      log("  UUIDs: " + event.uuids);
+      event.manufacturerData.forEach((valueDataView, key) => {
+        logDataView("Manufacturer", key, valueDataView);
+      });
+      event.serviceData.forEach((valueDataView, key) => {
+        logDataView("Service", key, valueDataView);
+      });
+    });
+
+    await device.watchAdvertisements();
+
+}
 document.getElementById("set").addEventListener("click", async () => {
   const SERVICE_UUID = "ebe0ccb0-7a0a-4b0c-8a1a-6ff2997da3a6";
   const CHARACTERISTIC_UUID = "ebe0ccb7-7a0a-4b0c-8a1a-6ff2997da3a6";
@@ -106,6 +130,10 @@ document.getElementById("set").addEventListener("click", async () => {
   try {
     status.textContent = "Requesting device...";
     const device = await navigator.bluetooth.requestDevice(options);
+
+    // await setupAdvertiseLogging(device);
+    // return;
+
     status.textContent = "Connecting...";
     server = await device.gatt.connect();
     status.textContent = "Getting service...";
@@ -115,25 +143,26 @@ document.getElementById("set").addEventListener("click", async () => {
     // const characteristic = await service.getCharacteristic("battery_level");
     status.textContent = "Getting characteristic...";
     const characteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
-    // const allChars = await service.getCharacteristics();
-    // await readAllCharacteristics(allChars);
+    const allChars = await service.getCharacteristics();
+    await readAllCharacteristics(allChars);
 
-    const notifyCharacteristic = await service.getCharacteristic(
-      NOTIFY_CHARACTERISTIC_UUID
-    );
+    // const notifyCharacteristic = await service.getCharacteristic(
+    //   NOTIFY_CHARACTERISTIC_UUID
+    // );
 
-    if (notifyCharacteristic.properties.notify) {
-      notifyCharacteristic.addEventListener(
-        "characteristicvaluechanged",
-        (event) => {
-          console.log(`Received heart rate measurement: ${event.target.value}`);
-        }
-      );
-      await notifyCharacteristic.startNotifications();
-    }
+    // if (notifyCharacteristic.properties.notify) {
+    //   notifyCharacteristic.addEventListener(
+    //     "characteristicvaluechanged",
+    //     (event) => {
+    //       console.log(`Received heart rate measurement: ${event.target.value}`);
+    //     }
+    //   );
+    //   await notifyCharacteristic.startNotifications();
+    // }
 
-    // const reading = await characteristic.readValue();
-    // getTime(reading);
+    console.log('Reading current time');
+    const reading = await characteristic.readValue();
+    getTime(reading);
 
     // const hwrevService = await server.getPrimaryService(DEVICE_INFORMATION);
     // const chars = await hwrevService.getCharacteristics();
@@ -169,7 +198,9 @@ document.getElementById("set").addEventListener("click", async () => {
   } catch (e) {
     status.textContent = `${e.name}: ${e.message}`;
   } finally {
-    server.disconnect();
+    if (server) {
+      server.disconnect();
+    }
     status.textContent = "Done.";
   }
 });
