@@ -46,11 +46,11 @@ function getTime(dataview) {
   console.log(`UTC Offset: ${UtcOffset} expected ${-now.getTimezoneOffset()/60}`);
   console.log(`time: ${new Date(timestamp*1000)}`);
 
-  const buffer = new ArrayBuffer(5);
-  const view = new DataView(buffer);
-  view.setUint32(0, now.getTime() / 1000, true);
-  view.setInt8(4, -now.getTimezoneOffset() / 60);
-  printRawData(view)
+  // const buffer = new ArrayBuffer(5);
+  // const view = new DataView(buffer);
+  // view.setUint32(0, now.getTime() / 1000, true);
+  // view.setInt8(4, -now.getTimezoneOffset() / 60);
+  // printRawData(view)
 }
 
 async function readAllCharacteristics(characteristics) {
@@ -61,6 +61,10 @@ async function readAllCharacteristics(characteristics) {
         const t = await characteristic.getDescriptors();
         console.log(`Reading characteristic: ${uuid}`);
         const hwRev = await characteristic.readValue();
+        if (hwRev.byteLength === 0) {
+          console.log('no data in characteristic');
+          continue;
+        }
         printRawData(hwRev);
         printString(hwRev);
         printInt32(hwRev);
@@ -70,7 +74,7 @@ async function readAllCharacteristics(characteristics) {
         console.log(`Cannot read UUID: ${uuid}`);
       }
     } catch (error) {
-      console.error(`Error reading UUID: ${uuid}`);
+      console.error(`Error reading UUID: ${uuid}. ${error}`);
     }
   }
 }
