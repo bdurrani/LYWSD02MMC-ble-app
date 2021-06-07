@@ -1,7 +1,24 @@
 "use strict";
 
 const status = document.getElementById("status");
-const log = console.log;
+const logSelector = document.querySelector("#log");
+
+function log(input) {
+  info(input)
+  console.log(input);
+}
+
+function info() {
+  const line = Array.prototype.slice
+    .call(arguments)
+    .map(function (argument) {
+      return typeof argument === "string" ? argument : JSON.stringify(argument);
+    })
+    .join(" ");
+
+  logSelector.textContent += line + "\n";
+}
+
 function buf2hex(buffer) {
   // buffer is an ArrayBuffer
   return [...new Uint8Array(buffer)]
@@ -10,26 +27,26 @@ function buf2hex(buffer) {
 }
 
 function printRawData(dataview) {
-  console.log(
+  log(
     `Raw data: ${buf2hex(dataview.buffer)} lenght: ${dataview.byteLength}`
   );
 }
 
 function printString(dw) {
   const decoder = new TextDecoder("utf-8");
-  console.log(`string: ${decoder.decode(dw.buffer)}`);
+  log(`string: ${decoder.decode(dw.buffer)}`);
 }
 
 function printInt32(dw) {
-  console.log(`int32: ${dw.getInt32()}`);
+  log(`int32: ${dw.getInt32()}`);
 }
 
 function printUInt32(dw) {
-  console.log(`uint32: ${dw.getUint32()}`);
+  log(`uint32: ${dw.getUint32()}`);
 }
 
 function printInt8(dw) {
-  console.log(`int8: ${dw.getInt8()}`);
+  log(`int8: ${dw.getInt8()}`);
 }
 
 function getTime(dataview) {
@@ -38,13 +55,13 @@ function getTime(dataview) {
   // First 4 bytes: Unix timestamp (in seconds, little endian)
   const timestamp = dataview.getUint32(0, true);
   const now = new Date();
-  console.log(`timestamp: ${timestamp} actual: ${now.getTime()/1000}`);
+  log(`timestamp: ${timestamp} actual: ${now.getTime()/1000}`);
 
 
   // Last byte: Offset from UTC (in hours)
   const UtcOffset = dataview.getInt8(4);
-  console.log(`UTC Offset: ${UtcOffset} expected ${-now.getTimezoneOffset()/60}`);
-  console.log(`time: ${new Date(timestamp*1000)}`);
+  log(`UTC Offset: ${UtcOffset} expected ${-now.getTimezoneOffset()/60}`);
+  log(`time: ${new Date(timestamp*1000)}`);
 
   // const buffer = new ArrayBuffer(5);
   // const view = new DataView(buffer);
@@ -59,10 +76,10 @@ async function readAllCharacteristics(characteristics) {
     try {
       if (characteristic.properties.read) {
         const t = await characteristic.getDescriptors();
-        console.log(`Reading characteristic: ${uuid}`);
+        log(`Reading characteristic: ${uuid}`);
         const hwRev = await characteristic.readValue();
         if (hwRev.byteLength === 0) {
-          console.log('no data in characteristic');
+          log('no data in characteristic \n');
           continue;
         }
         printRawData(hwRev);
@@ -71,7 +88,7 @@ async function readAllCharacteristics(characteristics) {
         printUInt32(hwRev);
         printInt8(hwRev);
       } else {
-        console.log(`Cannot read UUID: ${uuid}`);
+        log(`Cannot read UUID: ${uuid}`);
       }
     } catch (error) {
       console.error(`Error reading UUID: ${uuid}. ${error}`);
@@ -114,20 +131,36 @@ async function setupAdvertiseLogging(device) {
     });
 
     await device.watchAdvertisements();
-
 }
+
+async function queryAllServices(server) {
+    const services = await server.getPrimaryServices();
+
+  for (const service of services) {
+    log(`Service found, UUID: ${service.uuid}`);
+  }
+  log('');
+  return services;
+}
+
 document.getElementById("set").addEventListener("click", async () => {
   const SERVICE_UUID = "ebe0ccb0-7a0a-4b0c-8a1a-6ff2997da3a6";
   const CHARACTERISTIC_UUID = "ebe0ccb7-7a0a-4b0c-8a1a-6ff2997da3a6";
 
-  const NOTIFY_CHARACTERISTIC_UUID = "ebe0ccbc-7a0a-4b0c-8a1a-6ff2997da3a6";
-
+  // List of service names supported
+  // https://github.com/chromium/chromium/blob/d7da0240cae77824d1eda25745c4022757499131/third_party/blink/renderer/modules/bluetooth/bluetooth_uuid.cc
   const DEVICE_INFORMATION = "device_information";
+
+  // This is not supported it seems
+  const ENVIRONMENTAL_SENSING = "environmental_sensing";
+
+  const NOTIFY_CHARACTERISTIC_UUID = "ebe0ccbc-7a0a-4b0c-8a1a-6ff2997da3a6";
 
   const options = {
     filters: [{ name: "LYWSD02" }],
-    optionalServices: [SERVICE_UUID, DEVICE_INFORMATION],
-    services: ["environmental_sensing"],
+    // example of using short UUID
+    // that I grabbed via nRF Connect
+    optionalServices: [SERVICE_UUID, DEVICE_INFORMATION, 0xfef5],
   };
 
   let server = null;
@@ -143,6 +176,11 @@ document.getElementById("set").addEventListener("click", async () => {
     status.textContent = "Getting service...";
 
     const service = await server.getPrimaryService(SERVICE_UUID);
+    // const anotherService = await server.getPrimaryService('FEF5');
+    // const testServiceUUID = "0000fef5-0000-1000-8000-00805F9B34FB";
+    // const anotherService = await server.getPrimaryService(testServiceUUID);
+
+    await queryAllServices(server);
     // const service = await server.getPrimaryService("battery_service");
     // const characteristic = await service.getCharacteristic("battery_level");
     status.textContent = "Getting characteristic...";
@@ -164,7 +202,7 @@ document.getElementById("set").addEventListener("click", async () => {
     //   await notifyCharacteristic.startNotifications();
     // }
 
-    console.log('Reading current time');
+    console.log("Reading current time");
     const reading = await characteristic.readValue();
     getTime(reading);
 
