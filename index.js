@@ -1,11 +1,23 @@
 "use strict";
 
+const SERVICE_UUID = "ebe0ccb0-7a0a-4b0c-8a1a-6ff2997da3a6";
+const TIME_CHARACTERISTIC_UUID = "ebe0ccb7-7a0a-4b0c-8a1a-6ff2997da3a6";
+
+// List of service names supported
+// https://github.com/chromium/chromium/blob/d7da0240cae77824d1eda25745c4022757499131/third_party/blink/renderer/modules/bluetooth/bluetooth_uuid.cc
+const DEVICE_INFORMATION = "device_information";
+
+// This is not supported it seems
+const ENVIRONMENTAL_SENSING = "environmental_sensing";
+
+const NOTIFY_CHARACTERISTIC_UUID = "ebe0ccbc-7a0a-4b0c-8a1a-6ff2997da3a6";
+
 const status = document.getElementById("status");
 const logSelector = document.querySelector("#log");
 const currentTimeElement = document.querySelector("#current-time");
 
 function log(input) {
-  info(input)
+  info(input);
   console.log(input);
 }
 
@@ -28,9 +40,7 @@ function buf2hex(buffer) {
 }
 
 function printRawData(dataview) {
-  log(
-    `Raw data: ${buf2hex(dataview.buffer)} lenght: ${dataview.byteLength}`
-  );
+  log(`Raw data: ${buf2hex(dataview.buffer)} lenght: ${dataview.byteLength}`);
 }
 
 function printString(dw) {
@@ -50,18 +60,27 @@ function printInt8(dw) {
   log(`int8: ${dw.getInt8()}`);
 }
 
+async function queryCurrentTime(server) {
+  const service = await server.getPrimaryService(SERVICE_UUID);
+  const characteristic = await service.getCharacteristic(
+    TIME_CHARACTERISTIC_UUID
+  );
+  console.log("Reading current time");
+  const reading = await characteristic.readValue();
+  getTime(reading);
+}
+
 function getTime(dataview) {
   printRawData(dataview);
   // const now = new Date();
   // First 4 bytes: Unix timestamp (in seconds, little endian)
   const timestamp = dataview.getUint32(0, true);
   const now = new Date();
-  log(`timestamp: ${timestamp} actual: ${now.getTime()/1000}`);
-
+  log(`timestamp: ${timestamp} actual: ${now.getTime() / 1000}`);
 
   // Last byte: Offset from UTC (in hours)
   const UtcOffset = dataview.getInt8(4);
-  log(`UTC Offset: ${UtcOffset} expected ${-now.getTimezoneOffset()/60}`);
+  log(`UTC Offset: ${UtcOffset} expected ${-now.getTimezoneOffset() / 60}`);
   const currentTime = new Date(timestamp * 1000);
   log(`time: ${currentTime}`);
   currentTimeElement.textContent = currentTime;
@@ -82,7 +101,7 @@ async function readAllCharacteristics(characteristics) {
         log(`Reading characteristic: ${uuid}`);
         const hwRev = await characteristic.readValue();
         if (hwRev.byteLength === 0) {
-          log('no data in characteristic \n');
+          log("no data in characteristic \n");
           continue;
         }
         printRawData(hwRev);
@@ -118,47 +137,35 @@ const logDataView = (labelOfDataSource, key, valueDataView) => {
 };
 
 async function setupAdvertiseLogging(device) {
-    device.addEventListener("advertisementreceived", (event) => {
-      log("Advertisement received.");
-      log("  Device Name: " + event.device.name);
-      log("  Device ID: " + event.device.id);
-      log("  RSSI: " + event.rssi);
-      log("  TX Power: " + event.txPower);
-      log("  UUIDs: " + event.uuids);
-      event.manufacturerData.forEach((valueDataView, key) => {
-        logDataView("Manufacturer", key, valueDataView);
-      });
-      event.serviceData.forEach((valueDataView, key) => {
-        logDataView("Service", key, valueDataView);
-      });
+  device.addEventListener("advertisementreceived", (event) => {
+    log("Advertisement received.");
+    log("  Device Name: " + event.device.name);
+    log("  Device ID: " + event.device.id);
+    log("  RSSI: " + event.rssi);
+    log("  TX Power: " + event.txPower);
+    log("  UUIDs: " + event.uuids);
+    event.manufacturerData.forEach((valueDataView, key) => {
+      logDataView("Manufacturer", key, valueDataView);
     });
+    event.serviceData.forEach((valueDataView, key) => {
+      logDataView("Service", key, valueDataView);
+    });
+  });
 
-    await device.watchAdvertisements();
+  await device.watchAdvertisements();
 }
 
 async function queryAllServices(server) {
-    const services = await server.getPrimaryServices();
+  const services = await server.getPrimaryServices();
 
   for (const service of services) {
     log(`Service found, UUID: ${service.uuid}`);
   }
-  log('');
+  log("");
   return services;
 }
 
 document.getElementById("set").addEventListener("click", async () => {
-  const SERVICE_UUID = "ebe0ccb0-7a0a-4b0c-8a1a-6ff2997da3a6";
-  const TIME_CHARACTERISTIC_UUID = "ebe0ccb7-7a0a-4b0c-8a1a-6ff2997da3a6";
-
-  // List of service names supported
-  // https://github.com/chromium/chromium/blob/d7da0240cae77824d1eda25745c4022757499131/third_party/blink/renderer/modules/bluetooth/bluetooth_uuid.cc
-  const DEVICE_INFORMATION = "device_information";
-
-  // This is not supported it seems
-  const ENVIRONMENTAL_SENSING = "environmental_sensing";
-
-  const NOTIFY_CHARACTERISTIC_UUID = "ebe0ccbc-7a0a-4b0c-8a1a-6ff2997da3a6";
-
   const options = {
     filters: [{ name: "LYWSD02" }],
     // example of using short UUID
@@ -178,7 +185,7 @@ document.getElementById("set").addEventListener("click", async () => {
     server = await device.gatt.connect();
     status.textContent = "Getting service...";
 
-    const service = await server.getPrimaryService(SERVICE_UUID);
+    // const service = await server.getPrimaryService(SERVICE_UUID);
     // const anotherService = await server.getPrimaryService('FEF5');
     // const testServiceUUID = "0000fef5-0000-1000-8000-00805F9B34FB";
     // const anotherService = await server.getPrimaryService(testServiceUUID);
@@ -186,12 +193,7 @@ document.getElementById("set").addEventListener("click", async () => {
     // await queryAllServices(server);
     // const service = await server.getPrimaryService("battery_service");
     // const characteristic = await service.getCharacteristic("battery_level");
-    status.textContent = "Getting characteristic...";
-    const characteristic = await service.getCharacteristic(TIME_CHARACTERISTIC_UUID);
-    console.log("Reading current time");
-    const reading = await characteristic.readValue();
-    getTime(reading);
-
+    await queryCurrentTime(server);
     // const allChars = await service.getCharacteristics();
     // await readAllCharacteristics(allChars);
 
@@ -208,7 +210,6 @@ document.getElementById("set").addEventListener("click", async () => {
     //   );
     //   await notifyCharacteristic.startNotifications();
     // }
-
 
     // const hwrevService = await server.getPrimaryService(DEVICE_INFORMATION);
     // const chars = await hwrevService.getCharacteristics();
