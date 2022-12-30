@@ -102,6 +102,41 @@ async function queryBattery(server) {
   return;
 }
 
+async function querySensor(server) {
+  const service = await server.getPrimaryService(SERVICE_UUID);
+  const UUID_DATA = "ebe0ccc1-7a0a-4b0c-8a1a-6ff2997da3a6";
+  // read 3 bytes using notify
+  // https://github.com/h4/lywsd02/blob/364b228922540babc3600d9e2131ff32721c5120/lywsd02/client.py#L157
+  const characteristic = await service.getCharacteristic(UUID_DATA);
+  console.log("Reading sensor data");
+  await characteristic.startNotifications();
+  characteristic.addEventListener(
+    "characteristicvaluechanged",
+    handleCharacteristicValueChanged
+  );
+  console.log("Notifications have been started.");
+  return;
+}
+
+// https://googlechrome.github.io/samples/web-bluetooth/notifications.html
+async function handleCharacteristicValueChanged(event) {
+  const characteristic = event.target;
+  const value = characteristic.value;
+  await characteristic.stopNotifications();
+  characteristic.removeEventListener(
+    "characteristicvaluechanged",
+    handleCharacteristicValueChanged
+  );
+  console.log("Received " + value);
+  const temp = value.getInt16(0, true) / 100;
+  const humidity = value.getUint8(2);
+  log(`Temp: ${temp} Humidity: ${humidity}%`);
+
+  // printRawData(reading);
+  // TODO: Parse Heart Rate Measurement value.
+  // See https://github.com/WebBluetoothCG/demos/blob/gh-pages/heart-rate-sensor/heartRateSensor.js
+}
+
 async function readBlocks(server) {
   // const TIME_CHARACTERISTIC_UUID = "ebe0ccb7-7a0a-4b0c-8a1a-6ff2997da3a6";
   const WRITE_SERVICE_UUID = "ebe0ccb0-7a0a-4b0c-8a1a-6ff2997da3a6";
@@ -249,6 +284,7 @@ document.getElementById("set").addEventListener("click", async () => {
     await queryCurrentTime(server);
     await queryUnits(server);
     await queryBattery(server);
+    await querySensor(server);
 
     // await readBlocks(server);
     // const allChars = await service.getCharacteristics();
@@ -303,9 +339,15 @@ document.getElementById("set").addEventListener("click", async () => {
     status.textContent = `${e.name}: ${e.message}`;
     log(e);
   } finally {
+    await delay(9000);
+    log("disconnecting from server");
     if (server) {
       server.disconnect();
     }
     status.textContent = "Done.";
   }
 });
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
