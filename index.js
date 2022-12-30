@@ -2,6 +2,7 @@
 
 const SERVICE_UUID = "ebe0ccb0-7a0a-4b0c-8a1a-6ff2997da3a6";
 const TIME_CHARACTERISTIC_UUID = "ebe0ccb7-7a0a-4b0c-8a1a-6ff2997da3a6";
+const UNITS_UUID = "ebe0ccbe-7a0a-4b0c-8a1a-6ff2997da3a6";
 
 // List of service names supported
 // https://github.com/chromium/chromium/blob/d7da0240cae77824d1eda25745c4022757499131/third_party/blink/renderer/modules/bluetooth/bluetooth_uuid.cc
@@ -70,6 +71,65 @@ async function queryCurrentTime(server) {
   getTime(reading);
 }
 
+async function queryUnits(server) {
+  const service = await server.getPrimaryService(SERVICE_UUID);
+  const characteristic = await service.getCharacteristic(UNITS_UUID);
+  console.log("Reading current units");
+  const reading = await characteristic.readValue();
+  printRawData(reading);
+  // Returns a unsigned byte
+  const unitValue = reading.getUint8(0);
+  if (unitValue === 0xff) {
+    log("Found celcius units");
+  } else if (unitValue == 0x1) {
+    log("Found Fahrenheit");
+  } else {
+    log("No units found");
+  }
+}
+
+async function queryBattery(server) {
+  const service = await server.getPrimaryService(SERVICE_UUID);
+  const UUID_BATTERY = "ebe0ccc4-7a0a-4b0c-8a1a-6ff2997da3a6";
+  // read 1 byte
+  const characteristic = await service.getCharacteristic(UUID_BATTERY);
+  console.log("Reading current battery");
+  const reading = await characteristic.readValue();
+  printRawData(reading);
+  // Returns a unsigned byte
+  const batteryValue = reading.getUint8(0);
+  log(`Battery value: ${batteryValue}`);
+  return;
+}
+
+async function readBlocks(server) {
+  // const TIME_CHARACTERISTIC_UUID = "ebe0ccb7-7a0a-4b0c-8a1a-6ff2997da3a6";
+  const WRITE_SERVICE_UUID = "ebe0ccb0-7a0a-4b0c-8a1a-6ff2997da3a6";
+  const WRITE_CHARACTERISTIC_UUID = "ebe0ccd2-7a0a-4b0c-8a1a-6ff2997da3a6";
+  const service = await server.getPrimaryService(WRITE_SERVICE_UUID);
+  const characteristic = await service.getCharacteristic(
+    WRITE_CHARACTERISTIC_UUID
+  );
+
+  const writeBuffer = new ArrayBuffer(2);
+  const writeDataView = new DataView(writeBuffer);
+
+  const writeData = 12289;
+  writeDataView.setInt16(0, writeData);
+  await characteristic.writeValue(writeBuffer);
+
+  const READ_CHARACTERISTIC_UUID = "ebe0ccb9-7a0a-4b0c-8a1a6ff2997da3a6";
+  const readCharacteristic = await service.getCharacteristic(
+    READ_CHARACTERISTIC_UUID
+  );
+
+  readCharacteristic.on("characteristicvaluechanged", (one, two) => {
+    console.log(`${one} ${two}`);
+  });
+
+  await readCharacteristic.readValue();
+}
+
 function getTime(dataview) {
   printRawData(dataview);
   // const now = new Date();
@@ -84,12 +144,6 @@ function getTime(dataview) {
   const currentTime = new Date(timestamp * 1000);
   log(`time: ${currentTime}`);
   currentTimeElement.textContent = currentTime;
-
-  // const buffer = new ArrayBuffer(5);
-  // const view = new DataView(buffer);
-  // view.setUint32(0, now.getTime() / 1000, true);
-  // view.setInt8(4, -now.getTimezoneOffset() / 60);
-  // printRawData(view)
 }
 
 async function readAllCharacteristics(characteristics) {
@@ -170,7 +224,6 @@ document.getElementById("set").addEventListener("click", async () => {
     filters: [{ name: "LYWSD02" }],
     // example of using short UUID
     // that I grabbed via nRF Connect
-    optionalServices: [SERVICE_UUID, DEVICE_INFORMATION, 0xfef5],
   };
 
   let server = null;
@@ -194,6 +247,10 @@ document.getElementById("set").addEventListener("click", async () => {
     // const service = await server.getPrimaryService("battery_service");
     // const characteristic = await service.getCharacteristic("battery_level");
     await queryCurrentTime(server);
+    await queryUnits(server);
+    await queryBattery(server);
+
+    // await readBlocks(server);
     // const allChars = await service.getCharacteristics();
     // await readAllCharacteristics(allChars);
 
@@ -244,6 +301,7 @@ document.getElementById("set").addEventListener("click", async () => {
     // status.textContent = "Done.";
   } catch (e) {
     status.textContent = `${e.name}: ${e.message}`;
+    log(e);
   } finally {
     if (server) {
       server.disconnect();
