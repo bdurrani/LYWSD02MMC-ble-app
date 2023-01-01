@@ -1,5 +1,4 @@
 const path = require("path");
-const WebpackShellPluginNext = require("webpack-shell-plugin-next");
 
 module.exports = {
   target: "web",

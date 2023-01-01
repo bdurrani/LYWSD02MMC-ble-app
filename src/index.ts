@@ -1,3 +1,5 @@
+import { LYWSD02 } from "./lywsd02";
+
 const SERVICE_UUID = "ebe0ccb0-7a0a-4b0c-8a1a-6ff2997da3a6";
 const TIME_CHARACTERISTIC_UUID = "ebe0ccb7-7a0a-4b0c-8a1a-6ff2997da3a6";
 const UNITS_UUID = "ebe0ccbe-7a0a-4b0c-8a1a-6ff2997da3a6";
@@ -83,6 +85,7 @@ function printRawData(dataview: DataView) {
     return;
   }
   button.addEventListener("click", async () => {
+    const test = new LYWSD02();
     const options = {
       filters: [{ name: "LYWSD02" }],
     };
