@@ -4,8 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "webpack",
-    "watch": "webpack --watch"
+    "build": "webpack && postcss css/styles.css -o dist/styles.css",
+    "watch": "webpack --watch",
+    "start": "webpack serve --mode=development --open",
+    "buildcss": "postcss css/styles.css -o dist/styles.css"
   },
   "keywords": [],
   "author": "",
@@ -19,7 +21,10 @@
     "@types/web-bluetooth": "^0.0.16",
     "ts-loader": "^9.4.2",
     "typescript": "^4.9.4",
+    "watch": "^1.0.2",
     "webpack": "^5.75.0",
-    "webpack-cli": "^5.0.1"
+    "webpack-cli": "^5.0.1",
+    "webpack-dev-server": "^4.11.1",
+    "webpack-shell-plugin-next": "^2.3.1"
   }
 }

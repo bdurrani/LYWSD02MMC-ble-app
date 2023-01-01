@@ -1,5 +1,8 @@
 const path = require("path");
+const WebpackShellPluginNext = require("webpack-shell-plugin-next");
+
 module.exports = {
+  target: "web",
   mode: "development",
   entry: "./src/index.ts",
   module: {
@@ -20,4 +23,12 @@ module.exports = {
   },
   // devtool: 'eval',
   devtool: "inline-source-map",
+  devServer: {
+    static: {
+      directory: __dirname,
+    },
+    watchFiles: ["src/**/*"],
+    liveReload: true,
+  },
+  plugins: [],
 };
