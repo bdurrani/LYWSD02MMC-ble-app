@@ -30,4 +30,7 @@ module.exports = {
     liveReload: true,
   },
   plugins: [],
+  optimization: {
+    usedExports: false,
+  },
 };
