@@ -35,13 +35,6 @@ function logInfo(...args: any[]) {
   button?.addEventListener("click", async () => {
     const bleDevice = new LYWSD02();
 
-    const tempElement = document.getElementById("temperature-value");
-    if (tempElement === null) {
-      console.error("no temp element found");
-    } else {
-      tempElement.textContent = "hello tmop °";
-    }
-
     try {
       statusElement.textContent = "Requesting device...";
       await bleDevice.requestDevice();
@@ -62,7 +55,15 @@ function logInfo(...args: any[]) {
       }
 
       const unit = await bleDevice.getUnits();
-      unit?.toString();
+      const tempElement = document.getElementById("temperature-value");
+      if (tempElement === null) {
+        console.error("no temp element found");
+      } else {
+        tempElement.textContent = `°${unit}`;
+      }
+
+      const sensorData = await bleDevice.querySensor();
+      console.log(sensorData.humidity);
     } catch (error) {
       console.error(error);
       if (error instanceof Error) {

@@ -1,6 +1,14 @@
 const CONNECTION_OPTIONS = {
   filters: [{ name: "LYWSD02" }],
 };
+
+const TemparatureUnitValueMap = new Map<string, number>();
+TemparatureUnitValueMap.set("C", 0xff);
+TemparatureUnitValueMap.set("F", 0x01);
+
+const ValueTemparatureUnitMap = new Map<number, string>();
+ValueTemparatureUnitMap.set(0xff, "C");
+ValueTemparatureUnitMap.set(0x01, "F");
 /**
  * UUID for primary service
  */
@@ -103,13 +111,68 @@ export class LYWSD02 {
     const dataView = await characteristic.readValue();
 
     const data = dataView.getUint8(0);
-    if (data === 0xff) {
-      return "C";
-    } else if (data === 0x01) {
-      return "F";
+    const unit = ValueTemparatureUnitMap.get(data);
+    if (unit) {
+      return unit;
     } else {
       throw new Error("Unexpected unit value returned");
     }
+  }
+
+  public async querySensor() {
+    if (!this.validateService(this._service)) {
+      throw new Error("Call requestDevice() before calling this");
+    }
+
+    const UUID_DATA = "ebe0ccc1-7a0a-4b0c-8a1a-6ff2997da3a6";
+    // read 3 bytes using notify
+    // https://github.com/h4/lywsd02/blob/364b228922540babc3600d9e2131ff32721c5120/lywsd02/client.py#L157
+    const dataCharacteristic = await this._service.getCharacteristic(UUID_DATA);
+    console.log("Reading sensor data");
+
+    let dataEventPromiseResolver: any;
+    const dataEventPromise = new Promise<any>((resolve) => {
+      dataEventPromiseResolver = resolve;
+    });
+
+    const handler = async (event: any) => {
+      const characteristic = event.target;
+      const value = characteristic.value;
+      await characteristic.stopNotifications();
+      characteristic.removeEventListener("characteristicvaluechanged", handler);
+      console.log("Received " + value);
+      const temp = value.getInt16(0, true) / 100;
+      const humidity = value.getUint8(2);
+      console.log(`Temp: ${temp} Humidity: ${humidity}%`);
+      dataEventPromiseResolver({ temp, humidity });
+    };
+    await dataCharacteristic.startNotifications();
+    dataCharacteristic.addEventListener("characteristicvaluechanged", handler);
+    const sensorData = await dataEventPromise;
+    return {
+      temparature: sensorData.temp,
+      humidity: sensorData.humidity,
+    };
+  }
+
+  // https://googlechrome.github.io/samples/web-bluetooth/notifications.html
+  async handleCharacteristicValueChanged(event: any) {
+    const characteristic = event.target;
+    const value = characteristic.value;
+    await characteristic.stopNotifications();
+    characteristic.removeEventListener(
+      "characteristicvaluechanged",
+      this.handleCharacteristicValueChanged
+    );
+    console.log("Received " + value);
+    const temp = value.getInt16(0, true) / 100;
+    const humidity = value.getUint8(2);
+    console.log(`Temp: ${temp} Humidity: ${humidity}%`);
+    // log(`Temp: ${temp} Humidity: ${humidity}%`);
+
+    // printRawData(reading);
+    // TODO: Parse Heart Rate Measurement value.
+    // See https://github.com/WebBluetoothCG/demos/blob/gh-pages/heart-rate-sensor/heartRateSensor.js
   }
 
   public cleanup() {
