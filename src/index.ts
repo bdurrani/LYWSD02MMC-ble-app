@@ -54,16 +54,18 @@ function logInfo(...args: any[]) {
         utcOffsetElement.textContent = utcOffset?.toString() ?? "-";
       }
 
-      const unit = await bleDevice.getUnits();
-      const tempElement = document.getElementById("temperature-value");
-      if (tempElement === null) {
-        console.error("no temp element found");
-      } else {
-        tempElement.textContent = `°${unit}`;
-      }
-
       const sensorData = await bleDevice.querySensor();
       console.log(sensorData.humidity);
+      const unit = await bleDevice.getUnits();
+      const tempElement = document.getElementById("temperature-value");
+      if (tempElement) {
+        tempElement.textContent = `${sensorData.temparature} °${unit}`;
+      }
+
+      const humidityElement = document.getElementById("humidity-value");
+      if (humidityElement) {
+        humidityElement.textContent = `${sensorData.humidity}%`;
+      }
     } catch (error) {
       console.error(error);
       if (error instanceof Error) {
@@ -71,9 +73,6 @@ function logInfo(...args: any[]) {
         logInfo(error);
       }
     } finally {
-      // if (server) {
-      //   server.disconnect();
-      // }
       bleDevice.cleanup();
       statusElement.textContent = "Done.";
     }
