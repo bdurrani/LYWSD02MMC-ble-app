@@ -39,6 +39,8 @@ function logInfo(...args: any[]) {
       statusElement.textContent = "Requesting device...";
       await bleDevice.requestDevice();
       statusElement.textContent = "Getting service...";
+      await bleDevice.queryHistory();
+      // return;
       const currentTime = await bleDevice.getCurrentTime();
 
       const timeElement = document.getElementById("time-value");
@@ -73,8 +75,13 @@ function logInfo(...args: any[]) {
         logInfo(error);
       }
     } finally {
+      await delay(20000);
       bleDevice.cleanup();
       statusElement.textContent = "Done.";
     }
   });
 })();
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}

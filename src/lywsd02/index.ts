@@ -25,7 +25,7 @@ function buf2hex(buffer: ArrayBuffer) {
   // buffer is an ArrayBuffer
   return [...new Uint8Array(buffer)]
     .map((x) => x.toString(16).padStart(2, "0"))
-    .join("");
+    .join(",");
 }
 
 export class LYWSD02 {
@@ -156,6 +156,70 @@ export class LYWSD02 {
       temparature: sensorData.temp,
       humidity: sensorData.humidity,
     };
+  }
+
+  public async queryHistory() {
+    // Last idx 152          READ NOTIFY
+    const UUID_HISTORY = "ebe0ccbc-7a0a-4b0c-8a1a-6ff2997da3a6";
+    if (!this.validateService(this._service)) {
+      throw new Error("Call requestDevice() before calling this");
+    }
+
+    // read 3 bytes using notify
+    // https://github.com/h4/lywsd02/blob/364b228922540babc3600d9e2131ff32721c5120/lywsd02/client.py#L157
+    const historyCharacteristic = await this._service.getCharacteristic(
+      UUID_HISTORY
+    );
+    const descriptors = (await historyCharacteristic.getDescriptors(0x2902))[0];
+    // await descriptors.writeValue(new Uint8Array([0x1, 0x0]));
+
+    console.log("Reading history data");
+
+    let dataEventPromiseResolver: any;
+    const dataEventPromise = new Promise<any>((resolve) => {
+      dataEventPromiseResolver = resolve;
+    });
+
+    const handler = async (event: any) => {
+      const characteristic = event.target as BluetoothRemoteGATTCharacteristic;
+      const value = characteristic.value as DataView;
+      // await characteristic.stopNotifications();
+      // characteristic.removeEventListener("characteristicvaluechanged", handler);
+      this.printRawData(value);
+      // (idx, ts, max_temp, max_hum, min_temp, min_hum) = struct.unpack_from('<IIhBhB', data)
+      // < = little endian
+      // I = unsigned int, 4 bytes
+      // h = short, 2 bytes
+      // B = unsigned char, 1 byte
+      let byteOffset = 0;
+      const idx = value.getUint32(0);
+      byteOffset += 4;
+      const ts = value.getUint32(4);
+
+      const currentTime = new Date(ts * 1000);
+      const timeStr = currentTime.toLocaleTimeString();
+      byteOffset += 4;
+      const maxTemp = value.getInt16(byteOffset) / 100;
+      byteOffset += 2;
+      const maxHumidity = value.getUint8(byteOffset);
+      byteOffset += 1;
+      const minTemp = value.getInt16(byteOffset) / 100;
+      byteOffset += 2;
+      const minHumidity = value.getUint8(byteOffset);
+
+      console.log(
+        `${idx} time: ${timeStr} maxtemp: ${maxTemp} minTemp: ${minTemp} maxHumidity: ${maxHumidity} minHumidity: ${minHumidity}`
+      );
+      dataEventPromiseResolver(value);
+    };
+
+    await historyCharacteristic.startNotifications();
+    historyCharacteristic.addEventListener(
+      "characteristicvaluechanged",
+      handler
+    );
+    const sensorData = await dataEventPromise;
+    return;
   }
 
   public cleanup() {
