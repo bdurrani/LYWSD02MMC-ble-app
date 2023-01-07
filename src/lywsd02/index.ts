@@ -28,6 +28,11 @@ function buf2hex(buffer: ArrayBuffer) {
     .join(",");
 }
 
+interface SensorData {
+  temparature: number;
+  humidity: number;
+}
+
 export class LYWSD02 {
   private device?: BluetoothDevice;
   private server?: BluetoothRemoteGATTServer;
@@ -121,7 +126,10 @@ export class LYWSD02 {
     console.log("Setting time..");
   }
 
-  public async getUnits() {
+  /**
+   * Query the device for the units for the temperature
+   */
+  public async getUnits(): Promise<TemparatureUnit> {
     if (!this.validateService(this._service)) {
       throw new Error("Call requestDevice() before calling this");
     }
@@ -141,7 +149,7 @@ export class LYWSD02 {
     }
   }
 
-  public async querySensor() {
+  public async querySensor(): Promise<SensorData> {
     if (!this.validateService(this._service)) {
       throw new Error("Call requestDevice() before calling this");
     }
