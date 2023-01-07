@@ -29,8 +29,24 @@ function logInfo(...args: any[]) {
   logElement!.textContent += line + "\n";
 }
 
+async function setCurrentTime() {
+  console.log("set current time");
+  const bleDevice = new LYWSD02();
+  try {
+    await bleDevice.requestDevice();
+    await bleDevice.setTime();
+    console.log("Time set");
+  } catch (error) {
+    console.error(`Error setting time ${error}`);
+  } finally {
+  }
+}
+
 (async () => {
   const button = document.getElementById("ble-button");
+
+  const setTimeButton = document.getElementById("set-time-button");
+  setTimeButton?.addEventListener("click", () => setCurrentTime());
 
   button?.addEventListener("click", async () => {
     const bleDevice = new LYWSD02();
@@ -39,15 +55,18 @@ function logInfo(...args: any[]) {
       statusElement.textContent = "Requesting device...";
       await bleDevice.requestDevice();
       statusElement.textContent = "Getting service...";
-      await bleDevice.queryHistory();
+      // await bleDevice.queryHistory();
       // return;
       const currentTime = await bleDevice.getCurrentTime();
 
       const timeElement = document.getElementById("time-value");
-      if (timeElement === null) {
-        console.error("no temp element found");
-      } else {
+      if (timeElement) {
         timeElement.textContent = currentTime;
+      }
+
+      const timeElementCell = document.getElementById("time-value-cell");
+      if (timeElementCell) {
+        timeElementCell.textContent = currentTime;
       }
 
       const utcOffsetElement = document.getElementById("utcoffset-value");

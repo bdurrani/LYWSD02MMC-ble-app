@@ -100,6 +100,27 @@ export class LYWSD02 {
     );
   }
 
+  public async setTime() {
+    if (!this.validateService(this._service)) {
+      throw new Error("Call requestDevice() before calling this");
+    }
+
+    const characteristic = await this._service.getCharacteristic(
+      TIME_CHARACTERISTIC_UUID
+    );
+    const buffer = new ArrayBuffer(5);
+    const view = new DataView(buffer);
+
+    const now = new Date();
+    // First 4 bytes: Unix timestamp (in seconds, little endian)
+    view.setUint32(0, now.getTime() / 1000, true);
+    // Last byte: Offset from UTC (in hours)
+    view.setInt8(4, -now.getTimezoneOffset() / 60);
+
+    await characteristic.writeValue(buffer);
+    console.log("Setting time..");
+  }
+
   public async getUnits() {
     if (!this.validateService(this._service)) {
       throw new Error("Call requestDevice() before calling this");
@@ -192,18 +213,18 @@ export class LYWSD02 {
       // h = short, 2 bytes
       // B = unsigned char, 1 byte
       let byteOffset = 0;
-      const idx = value.getUint32(0);
+      const idx = value.getUint32(byteOffset, true);
       byteOffset += 4;
-      const ts = value.getUint32(4);
+      const ts = value.getUint32(byteOffset, true);
 
       const currentTime = new Date(ts * 1000);
-      const timeStr = currentTime.toLocaleTimeString();
+      const timeStr = currentTime.toISOString();
       byteOffset += 4;
-      const maxTemp = value.getInt16(byteOffset) / 100;
+      const maxTemp = value.getInt16(byteOffset, true) / 100;
       byteOffset += 2;
       const maxHumidity = value.getUint8(byteOffset);
       byteOffset += 1;
-      const minTemp = value.getInt16(byteOffset) / 100;
+      const minTemp = value.getInt16(byteOffset, true) / 100;
       byteOffset += 2;
       const minHumidity = value.getUint8(byteOffset);
 
