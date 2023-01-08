@@ -12,33 +12,45 @@
 </head>
 
 <body>
-  <h1>LYWSD02MMC Example</h1>
-  <button id="ble-button" class="btn btn-primary ">Query Device</button>
   <br />
 
-  <table class="table">
-    <tbody>
-      <tr>
-        <th scope="row">Time</th>
-        <td id="time-value-cell">-</td>
-        <td>
-          <button id="set-time-button" class="btn btn-success btn-sm">Update time</button>
-        </td>
-      </tr>
-      <tr>
-        <th scope="row">Temperature</th>
-        <td id="temperature-value">-</td>
-      </tr>
-      <tr>
-        <th scope="row">Humidity</th>
-        <td id="humidity-value">-</td>
-      </tr>
-      <tr>
-        <th scope="row">UTC Offset</th>
-        <td id="utcoffset-value">-</td>
-      </tr>
-    </tbody>
-  </table>
+  <div class="container">
+    <!-- Page Heading -->
+    <div class="row justify-content-center">
+      <div class="col">
+        <h1>Xiaomi Temperature and Humidity Monitor Clock App using the LYWSD02MMC Sensor</h1>
+      </div>
+    </div>
+    <div class="row ">
+      <div class="col">
+        <button id="ble-button" class="btn btn-primary ">Query Device</button>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-6">
+        <div class="container">
+          <div class="row">
+            <div class="col-6">Time</div>
+            <div class="col-6" id="time-value-cell">-</div>
+          </div>
+          <div class="row">
+            <div class="col-6">Temperature</div>
+            <div class="col-6" id="temperature-value">-</div>
+          </div>
+          <div class="row">
+            <div class="col-6">Humidity</div>
+            <div class="col-6" id="humidity-value">-</div>
+          </div>
+          <div class="row">
+            <div class="col-6">UTC Offset</div>
+            <div class="col-6" id="utcoffset-value">-</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <br />
+  <button id="set-time-button" class="btn btn-success btn-sm">Update time</button>
 
   <span id="status"></span>
   <br />
