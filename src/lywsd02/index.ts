@@ -52,12 +52,6 @@ export class LYWSD02 {
     this._service = await this.server.getPrimaryService(SERVICE_UUID);
   }
 
-  private validate(
-    server?: BluetoothRemoteGATTServer
-  ): server is BluetoothRemoteGATTServer {
-    return server !== null && server !== undefined;
-  }
-
   private validateService(
     service?: BluetoothRemoteGATTService
   ): service is BluetoothRemoteGATTService {
@@ -189,7 +183,7 @@ export class LYWSD02 {
 
   public async queryHistory() {
     // Last idx 152          READ NOTIFY
-    const UUID_HISTORY = "ebe0ccbc-7a0a-4b0c-8a1a-6ff2997da3a6";
+    const UUID_CHARACTERISTIC_HISTORY = "ebe0ccbc-7a0a-4b0c-8a1a-6ff2997da3a6";
     if (!this.validateService(this._service)) {
       throw new Error("Call requestDevice() before calling this");
     }
@@ -197,10 +191,8 @@ export class LYWSD02 {
     // read 3 bytes using notify
     // https://github.com/h4/lywsd02/blob/364b228922540babc3600d9e2131ff32721c5120/lywsd02/client.py#L157
     const historyCharacteristic = await this._service.getCharacteristic(
-      UUID_HISTORY
+      UUID_CHARACTERISTIC_HISTORY
     );
-    const descriptors = (await historyCharacteristic.getDescriptors(0x2902))[0];
-    // await descriptors.writeValue(new Uint8Array([0x1, 0x0]));
 
     console.log("Reading history data");
 
@@ -212,8 +204,7 @@ export class LYWSD02 {
     const handler = async (event: any) => {
       const characteristic = event.target as BluetoothRemoteGATTCharacteristic;
       const value = characteristic.value as DataView;
-      // await characteristic.stopNotifications();
-      // characteristic.removeEventListener("characteristicvaluechanged", handler);
+
       this.printRawData(value);
       // (idx, ts, max_temp, max_hum, min_temp, min_hum) = struct.unpack_from('<IIhBhB', data)
       // < = little endian
