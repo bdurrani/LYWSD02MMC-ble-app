@@ -1,10 +1,5 @@
 import { LYWSD02 } from "./lywsd02";
 
-const statusElement = document.getElementById("status");
-if (statusElement === null) {
-  throw new Error("no status element found");
-}
-
 const logElement = document.getElementById("log");
 if (logElement === null) {
   throw new Error("no status element found");
@@ -13,6 +8,10 @@ if (logElement === null) {
 function logMessage(input: any) {
   logToOutput(input);
   console.log(input);
+}
+
+function clearLogs() {
+  logElement!.textContent = "";
 }
 
 function logToOutput(...args: any[]) {
@@ -27,10 +26,13 @@ function logToOutput(...args: any[]) {
 }
 
 async function setCurrentTime() {
-  logMessage("Setting urrent time and timezone");
+  clearLogs();
+  logMessage("Setting current time and timezone");
   const bleDevice = new LYWSD02();
   try {
+    logMessage("Connecting to device...");
     await bleDevice.requestDevice();
+    logMessage("Setting time and timezone");
     await bleDevice.setTime();
     logMessage("Time and timezone set");
   } catch (error) {
@@ -39,6 +41,7 @@ async function setCurrentTime() {
     bleDevice.cleanup();
   }
 }
+
 async function queryDevice() {
   {
     const bleDevice = new LYWSD02();
@@ -90,8 +93,26 @@ async function queryDevice() {
 
   const button = document.getElementById("ble-button");
   button?.addEventListener("click", () => queryDevice());
+
+  updateTime();
+  setInterval(updateTime, 5000);
 })();
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function updateTime() {
+  var now = new Date();
+  let str = now.toLocaleTimeString();
+  const currentTimeElement = document.getElementById("current-time");
+  if (currentTimeElement) {
+    currentTimeElement.textContent = str;
+  }
+
+  const currentUtcOffsetElement = document.getElementById("current-utc-offset");
+  if (currentUtcOffsetElement) {
+    const utcOffsetHours = now.getTimezoneOffset() / 60;
+    currentUtcOffsetElement.textContent = `UTC Offset (hours) ${utcOffsetHours}`;
+  }
 }
