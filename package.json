@@ -4,10 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "webpack && postcss css/styles.css -o dist/styles.css",
+    "build": "webpack",
     "watch": "webpack --watch",
-    "start": "webpack serve --mode=development --open",
-    "buildcss": "postcss css/styles.css -o dist/styles.css"
+    "start": "webpack serve --mode=development --open"
   },
   "keywords": [],
   "author": "",
