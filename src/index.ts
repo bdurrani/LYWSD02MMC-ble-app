@@ -95,7 +95,7 @@ async function queryDevice() {
   button?.addEventListener("click", () => queryDevice());
 
   updateTime();
-  setInterval(updateTime, 5000);
+  setInterval(updateTime, 1000);
 })();
 
 function delay(ms: number) {

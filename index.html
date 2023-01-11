@@ -19,7 +19,18 @@
         <h1>Xiaomi Temperature and Humidity Monitor Clock App using the LYWSD02MMC Sensor</h1>
       </div>
     </div>
-    <div class="row ">
+    <div class="row mb-4">
+      <div class="col">
+        This page uses the
+        <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Bluetooth_API">Bluetooth JS APIs</a> to talk to
+        the <a href="https://www.mi.com/global/product/xiaomi-temperature-and-humidity-monitor-clock/">Xiaomi
+          Temparature and Humidity Monitor
+          Clock</a>
+        <br>
+        You can use this to read data from the device and set device settings.
+      </div>
+    </div>
+    <div class="row gy-5">
       <div class="col">
         <button id="ble-button" class="btn btn-primary ">Query Device</button>
       </div>
@@ -60,13 +71,17 @@
         <pre id="current-utc-offset"></pre>
       </div>
     </div>
+    <div class="row pt-5">
+      <div class="col">
+        <h3>Logs</h3>
+        <div id="output" class="alert alert-dark" role="alert">
+          <pre id="log"></pre>
+        </div>
+      </div>
+    </div>
   </div>
   <br />
   <br />
-  <h3>Logs</h3>
-  <div id="output" class="alert alert-dark" role="alert">
-    <pre id="log"></pre>
-  </div>
 
   <script src="./dist/build.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
