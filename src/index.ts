@@ -60,7 +60,8 @@ async function queryDevice() {
       const utcOffsetElement = document.getElementById("utcoffset-value");
       if (utcOffsetElement) {
         const utcOffset = await bleDevice.getUtcOffset();
-        utcOffsetElement.textContent = utcOffset?.toString() ?? "-";
+        utcOffsetElement.textContent =
+          (utcOffset?.toString() ?? "-") + " hours";
       }
 
       logMessage("Querying for current temperature and humidity");
