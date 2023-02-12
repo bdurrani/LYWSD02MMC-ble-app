@@ -4,9 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "webpack",
-    "watch": "webpack --watch",
-    "start": "webpack serve --mode=development --open"
+    "build": "webpack --config webpack.prod.js",
+    "watch": "webpack --watch --config webpack.dev.js",
+    "start": "webpack serve --mode=development --open --config webpack.dev.js"
   },
   "keywords": [],
   "author": "",
@@ -24,6 +24,7 @@
     "webpack": "^5.75.0",
     "webpack-cli": "^5.0.1",
     "webpack-dev-server": "^4.11.1",
+    "webpack-merge": "^5.8.0",
     "webpack-shell-plugin-next": "^2.3.1"
   }
 }

@@ -21,14 +21,6 @@ module.exports = {
     path: path.resolve(__dirname, "dist"),
   },
   // devtool: 'eval',
-  devtool: "inline-source-map",
-  devServer: {
-    static: {
-      directory: __dirname,
-    },
-    watchFiles: ["src/**/*"],
-    liveReload: true,
-  },
   plugins: [],
   optimization: {
     usedExports: false,
